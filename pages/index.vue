@@ -4,9 +4,12 @@
       <h1 class="title">json-translator</h1>
       <h2 class="subtitle">Web app to translate i18n json to another language using google translate</h2>
 
-      <b-form-textarea v-model="json" placeholder="Paste here your json data" rows="3" max-rows="6"></b-form-textarea>
+      <b-form-textarea class="mb-2" v-model="json" placeholder="Paste here your json data" rows="3" max-rows="6"></b-form-textarea>
 
-      <b-button variant="outline-primary" :disabled="!isValid" @click="translate">Translate</b-button>
+      <b-button class="mb-2" variant="outline-primary" :disabled="!isValid" @click="translate">Translate</b-button>
+
+      <b-form-textarea readonly="" :value="translatedJson" placeholder="Paste here your json data" rows="3" max-rows="6"></b-form-textarea>
+
     </div>
   </div>
 </template>
@@ -15,7 +18,8 @@
 export default {
   data() {
     return {
-      json: "{ \"name\": \"Meu nome é Henrique\", \"key1\": { \"key2\": { \"key3\": \"Funcionou!\" } } }"
+      json: "{ \"name\": \"Meu nome é Henrique\", \"key1\": { \"key2\": { \"key3\": \"Funcionou!\" } } }",
+      translatedJson: null
     };
   },
 
@@ -38,7 +42,7 @@ export default {
           json: JSON.parse(this.json)
         })
         .then(res => {
-          console.log("res", res);
+          this.translatedJson = JSON.stringify(res.data);
         });
     }
   }
