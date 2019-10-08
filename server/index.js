@@ -3,7 +3,6 @@ const consola = require('consola');
 const { Nuxt, Builder } = require('nuxt');
 const bodyParser = require('koa-bodyparser');
 const Router = require('koa-router');
-const httpProxy = require('http-proxy');
 
 async function start() {
   const app = new Koa()
@@ -45,8 +44,6 @@ async function start() {
   })
 
   app.listen(port, host);
-
-  httpProxy.createProxyServer({ target: `http://${host}:${port}` }).listen(3001); // See (†)
 
   consola.ready({
     message: `Server listening on http://${host}:${port}`,

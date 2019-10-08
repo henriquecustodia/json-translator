@@ -1,29 +1,54 @@
 const googleTranslateApi = require('@vitalets/google-translate-api');
 const tunnel = require('tunnel');
+const { getProxy } = require('./proxy-list');
+const { defer } = require('./defer');
 
-const translator = (value, from, to) => {
+function translator({ value, from, to, proxy, deferred }) {
+    deferred = deferred || defer();
+
     const options = { client: 'gtx', from, to };
-    const config = {
-        agent: tunnel.httpsOverHttp({
-            proxy: {
-                host: '127.0.0.1',
-                port: '3001',
-                headers: {
-                    'User-Agent': 'Node'
-                }
-            }
-        })
-    };
 
-    return googleTranslateApi(value, options, config);
+    const config = (() => {
+        if (!proxy) {
+            return {};
+        }
+
+        const [host, port] = proxy;
+
+        return {
+            agent: tunnel.httpsOverHttp({ proxy: { host, port } })
+        }
+    })();
+
+    googleTranslateApi(value, options, config)
+        .then(res => {
+            if (proxy) {
+                console.log('proxy -> ', proxy);
+            } else {
+                console.log('sem proxy');
+            }
+
+            deferred.resolve(res);
+        })
+        .catch(() => {
+            translator({
+                value,
+                from,
+                to,
+                proxy: getProxy(),
+                deferred
+            })
+        });
+
+    return deferred.promise;
 }
 
 async function translate({ from, to, json }) {
-    return new Promise(async (resolve) => {
-        const map = await createMapToTranslate({ json, from, to });
-        console.log('map', map)
-        createObjectFromTranslationMap({ map, from, to, resolve });
-    })
+    return createObjectFromTranslationMap({
+        map: await createMapToTranslate({ json, from, to }),
+        from,
+        to
+    });
 }
 
 async function createMapToTranslate(options) {
@@ -64,21 +89,25 @@ async function createMapToTranslate(options) {
     });
 }
 
-async function createObjectFromTranslationMap({ map, from, to, resolve, translationObject = {} }) {
-    const [key, value] = map.shift();
-    const isLast = map.length === 0;
+async function createObjectFromTranslationMap({ map, from, to }) {
+    const translatedMap = await Promise.all(
+        map.map(async ([key, value]) => {
+            console.time(value);
+            const { text } = await translator({ value, from, to })
+            console.timeEnd(value);
+            console.log('sentence -> ', value, 'translation -> ', text)
 
-    const keyPathAsArray = key.split('.');
+            return [key, text];
+        })
+    );
 
-    const { text } = await translator(value, from, to)
+    const translationObject = translatedMap.reduce((translationObject, [key, translation]) => {
+        const keyPathAsArray = key.split('.');
+        setTranslationInObject(keyPathAsArray, translation, translationObject);
+        return translationObject;
+    }, {});
 
-    setTranslationInObject(keyPathAsArray, text, translationObject);
-
-    if (!isLast) {
-        createObjectFromTranslationMap({ map, from, to, resolve, translationObject })
-    } else {
-        resolve(translationObject);
-    }
+    return translationObject;
 }
 
 function setTranslationInObject(keypathArray, translation, object) {
@@ -97,7 +126,9 @@ module.exports = async ctx => {
     const { from, to, json } = ctx.request.body;
 
     try {
+        console.time('translate');
         ctx.body = await translate({ from, to, json });
+        console.timeEnd('translate');
     } catch (error) {
         console.error(error)
     }
