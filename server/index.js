@@ -20,9 +20,19 @@ async function start() {
     port = process.env.PORT || 3000
   } = nuxt.options.server;
 
-  router.post('/translate', require('./translator'));
+  router.post('/translate', require('./translate-route'));
+  router.get('/languages', require('./languages-route'));
 
   app
+    .use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (err) {
+        ctx.status = err.status || 500;
+        ctx.body = err.message;
+        ctx.app.emit('error', err, ctx);
+      }
+    })
     .use(bodyParser())
     .use(router.routes())
     .use(router.allowedMethods());
