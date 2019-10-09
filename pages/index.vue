@@ -46,7 +46,7 @@ export default {
   components: { GhBadge },
 
   async asyncData({ $axios }) {
-    const { data } = await $axios.get("/languages");
+    const { data } = await $axios.get("/api/languages");
     return { languages: data };
   },
 
@@ -81,7 +81,7 @@ export default {
       this.translatedJson = null;
       this.isTranslating = true;
       this.$axios
-        .post("/translate", {
+        .post("/api/translate", {
           from: this.from,
           to: this.to,
           json: JSON.parse(this.json)

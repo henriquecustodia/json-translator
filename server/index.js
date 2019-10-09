@@ -3,6 +3,7 @@ const consola = require('consola');
 const { Nuxt, Builder } = require('nuxt');
 const bodyParser = require('koa-bodyparser');
 const Router = require('koa-router');
+const cors = require('@koa/cors');
 
 async function start() {
   const app = new Koa()
@@ -20,10 +21,14 @@ async function start() {
     port = process.env.PORT || 3000
   } = nuxt.options.server;
 
-  router.post('/translate', require('./translate-route'));
-  router.get('/languages', require('./languages-route'));
+  router.post('/api/translate', require('./translate-route'));
+  router.get('/api/languages', require('./languages-route'));
 
   app
+    .use(cors())
+    .use(bodyParser())
+    .use(router.routes())
+    .use(router.allowedMethods())
     .use(async (ctx, next) => {
       try {
         await next();
@@ -32,11 +37,7 @@ async function start() {
         ctx.body = err.message;
         ctx.app.emit('error', err, ctx);
       }
-    })
-    .use(bodyParser())
-    .use(router.routes())
-    .use(router.allowedMethods());
-
+    });
 
   // Build in development
   if (config.dev) {
