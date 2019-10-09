@@ -1,5 +1,7 @@
 <template>
   <b-container>
+    <GhBadge />
+
     <div class="my-5 d-flex flex-column align-items-center">
       <h1>json-translator</h1>
       <h3 class="text-muted">Translate i18n json using google translate</h3>
@@ -38,7 +40,11 @@
 </template>
 
 <script>
+import GhBadge from "../components/gh-badge";
+
 export default {
+  components: { GhBadge },
+
   async asyncData({ $axios }) {
     const { data } = await $axios.get("/languages");
     return { languages: data };
